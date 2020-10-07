@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"unsafe"
 
 	"github.com/cespare/xxhash"
 )
@@ -132,17 +133,20 @@ func (ls Labels) MatchLabels(on bool, names ...string) Labels {
 	return matchedLabels
 }
 
+func noAllocBytes(buf string) []byte {
+	return *(*[]byte)(unsafe.Pointer(&buf))
+}
+
 // Hash returns a hash value for the label set.
 func (ls Labels) Hash() uint64 {
-	b := make([]byte, 0, 1024)
-
+	h := xxhash.New()
 	for _, v := range ls {
-		b = append(b, v.Name...)
-		b = append(b, sep)
-		b = append(b, v.Value...)
-		b = append(b, sep)
+		_, _ = h.Write(noAllocBytes(v.Name))
+		_, _ = h.Write([]byte{sep})
+		_, _ = h.Write(noAllocBytes(v.Value))
+		_, _ = h.Write([]byte{sep})
 	}
-	return xxhash.Sum64(b)
+	return h.Sum64()
 }
 
 // HashForLabels returns a hash value for the labels matching the provided names.

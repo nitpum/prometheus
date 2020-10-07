@@ -14,6 +14,7 @@
 package labels
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/prometheus/prometheus/util/testutil"
@@ -628,4 +629,31 @@ func TestBuilder_Labels(t *testing.T) {
 			add:  []Label{{"ddd", "444"}},
 		}).Labels(),
 	)
+}
+
+func TestLabels_Hash(t *testing.T) {
+	lbls := Labels{
+		{Name: "foo", Value: "bar"},
+		{Name: "baz", Value: "qux"},
+	}
+	testutil.Equals(t, lbls.Hash(), lbls.Hash())
+	testutil.Assert(t, lbls.Hash() != Labels{lbls[1], lbls[0]}.Hash(), "unordered labels match.")
+	testutil.Assert(t, lbls.Hash() != Labels{lbls[0]}.Hash(), "different labels match.")
+}
+
+var benchmarkLabelsResult uint64
+
+func BenchmarkLabels_Hash(b *testing.B) {
+	b.ReportAllocs()
+
+	lbl := &strings.Builder{}
+	lbl.Grow(1024 * 1024 * 10) // 10MB.
+	word := "abcdefghij"
+	for i := 0; i < lbl.Cap()/len(word); i++ {
+		_, _ = lbl.WriteString(word)
+	}
+	lbls := Labels{{Name: "__name__", Value: lbl.String()}}
+	for i := 0; i < b.N; i++ {
+		benchmarkLabelsResult = lbls.Hash()
+	}
 }
