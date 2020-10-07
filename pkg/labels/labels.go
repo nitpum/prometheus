@@ -275,6 +275,7 @@ func (ls Labels) WithoutEmpty() Labels {
 		if v.Value != "" {
 			continue
 		}
+		// Copy slice without empty labels only if needed.
 		els := make(Labels, 0, len(ls)-1)
 		for _, v := range ls {
 			if v.Value != "" {
